@@ -16,10 +16,10 @@ function smoothNoise(x, y, seed = 0) {
   const ux = fx * fx * (3 - 2 * fx)
   const uy = fy * fy * (3 - 2 * fy)
   return (
-    hash(ix, iy, seed) * (1 - ux) * (1 - uy)
-    + hash(ix + 1, iy, seed) * ux * (1 - uy)
-    + hash(ix, iy + 1, seed) * (1 - ux) * uy
-    + hash(ix + 1, iy + 1, seed) * ux * uy
+    hash(ix, iy, seed) * (1 - ux) * (1 - uy) +
+    hash(ix + 1, iy, seed) * ux * (1 - uy) +
+    hash(ix, iy + 1, seed) * (1 - ux) * uy +
+    hash(ix + 1, iy + 1, seed) * ux * uy
   )
 }
 
@@ -44,9 +44,9 @@ function clifford(x, y, a, b, c, d) {
 
 // Dark palette (vibrant on dark)
 const darkPalette = [
-  [1.0, 0.50, 0.28],
+  [1.0, 0.5, 0.28],
   [0.92, 0.38, 0.32],
-  [0.40, 0.45, 0.98],
+  [0.4, 0.45, 0.98],
   [0.65, 0.35, 0.88],
   [0.25, 0.82, 0.92],
   [0.92, 0.75, 0.38],
@@ -55,19 +55,15 @@ const darkPalette = [
 // Light palette (deeper/richer on light)
 const lightPalette = [
   [0.85, 0.35, 0.15],
-  [0.78, 0.22, 0.20],
-  [0.20, 0.25, 0.75],
-  [0.50, 0.18, 0.70],
+  [0.78, 0.22, 0.2],
+  [0.2, 0.25, 0.75],
+  [0.5, 0.18, 0.7],
   [0.08, 0.55, 0.65],
   [0.75, 0.55, 0.15],
 ]
 
 function lerpColor(c1, c2, t) {
-  return [
-    c1[0] + (c2[0] - c1[0]) * t,
-    c1[1] + (c2[1] - c1[1]) * t,
-    c1[2] + (c2[2] - c1[2]) * t,
-  ]
+  return [c1[0] + (c2[0] - c1[0]) * t, c1[1] + (c2[1] - c1[1]) * t, c1[2] + (c2[2] - c1[2]) * t]
 }
 
 async function generateVariant(variant, isLight) {
@@ -76,8 +72,8 @@ async function generateVariant(variant, isLight) {
   const palette = isLight ? lightPalette : darkPalette
 
   const addPoint = (x, y, r, g, b, intensity = 1, radius = 2) => {
-    const px = Math.floor((x + 2.5) / 5 * W)
-    const py = Math.floor((y + 1.25) / 2.5 * H)
+    const px = Math.floor(((x + 2.5) / 5) * W)
+    const py = Math.floor(((y + 1.25) / 2.5) * H)
     for (let dy = -radius; dy <= radius; dy++) {
       for (let dx = -radius; dx <= radius; dx++) {
         const nx = px + dx
@@ -123,9 +119,7 @@ async function generateVariant(variant, isLight) {
       const c = isLight ? [0.6, 0.4, 0.2] : [1, 0.9, 0.7]
       addPoint(Math.cos(angle) * r, Math.sin(angle) * r * 0.5, c[0], c[1], c[2], 0.02)
     }
-  }
-
-  else if (variant === 2) {
+  } else if (variant === 2) {
     // NEURAL MESH
     const nodes = []
     for (let i = 0; i < 40; i++) {
@@ -158,12 +152,17 @@ async function generateVariant(variant, isLight) {
       for (let i = 0; i < 3000; i++) {
         const angle = Math.random() * Math.PI * 2
         const r = Math.random() ** 1.5 * 0.2
-        addPoint(node.x + Math.cos(angle) * r, node.y + Math.sin(angle) * r, node.color[0], node.color[1], node.color[2], 0.03)
+        addPoint(
+          node.x + Math.cos(angle) * r,
+          node.y + Math.sin(angle) * r,
+          node.color[0],
+          node.color[1],
+          node.color[2],
+          0.03,
+        )
       }
     }
-  }
-
-  else if (variant === 3) {
+  } else if (variant === 3) {
     // AURORA CURTAINS
     for (let curtain = 0; curtain < 12; curtain++) {
       const baseX = (curtain - 5.5) * 0.45
@@ -194,9 +193,7 @@ async function generateVariant(variant, isLight) {
       const color = palette[Math.floor(Math.random() * palette.length)]
       addPoint(x, y, color[0], color[1], color[2], 0.08, 2)
     }
-  }
-
-  else if (variant === 4) {
+  } else if (variant === 4) {
     // MANDALA
     const symmetry = 12
     let ax = 0.1
@@ -205,11 +202,10 @@ async function generateVariant(variant, isLight) {
       const next = clifford(ax, ay, -1.7, 1.8, -1.9, -0.4)
       ax = next.x
       ay = next.y
-      if (i < 100)
-        continue
+      if (i < 100) continue
       const r = Math.sqrt(ax * ax + ay * ay) * 0.5
       const theta = Math.atan2(ay, ax)
-      const colorT = (i / 600000)
+      const colorT = i / 600000
       const color = lerpColor(palette[0], palette[3], colorT)
       for (let s = 0; s < symmetry; s++) {
         const angle = theta + (s / symmetry) * Math.PI * 2
@@ -231,9 +227,7 @@ async function generateVariant(variant, isLight) {
         addPoint(x, y, color[0], color[1], color[2], 0.008 * fade)
       }
     }
-  }
-
-  else if (variant === 5) {
+  } else if (variant === 5) {
     // FLUID CURRENTS
     for (let stream = 0; stream < 100; stream++) {
       const startX = (stream / 100 - 0.5) * 6
@@ -292,8 +286,7 @@ async function generateVariant(variant, isLight) {
         bgR = 0.96 - nebula * 0.04
         bgG = 0.95 - nebula * 0.05
         bgB = 0.94 - nebula * 0.03
-      }
-      else {
+      } else {
         bgR = 0.015 + nebula * 0.02
         bgG = 0.012 + nebula * 0.015
         bgB = 0.025 + nebula * 0.03
@@ -309,8 +302,7 @@ async function generateVariant(variant, isLight) {
         r = bgR - r * 0.8
         g = bgG - g * 0.8
         b = bgB - b * 0.8
-      }
-      else {
+      } else {
         // Additive for dark
         r = bgR + r ** 0.85
         g = bgG + g ** 0.85
@@ -318,7 +310,7 @@ async function generateVariant(variant, isLight) {
       }
 
       // Vignette
-      const vig = isLight ? (1 - Math.sqrt(px * px + py * py) * 0.15) : (1 - Math.sqrt(px * px + py * py) * 0.4)
+      const vig = isLight ? 1 - Math.sqrt(px * px + py * py) * 0.15 : 1 - Math.sqrt(px * px + py * py) * 0.4
       r *= vig
       g *= vig
       b *= vig

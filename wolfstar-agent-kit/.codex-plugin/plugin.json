@@ -1,0 +1,26 @@
+{
+  "name": "wolfstar-agent-kit",
+  "version": "5.4.0",
+  "description": "Wolfstar Project agent kit - Nuxt/Vue/TS workflow tools",
+  "author": {
+    "name": "Wolfstar Project",
+    "email": "contact@wolfstar.rocks"
+  },
+  "keywords": ["nuxt", "vue", "typescript", "workflow"],
+  "skills": "./skills/",
+  "hooks": "./hooks/codex.json",
+  "interface": {
+    "displayName": "Wolfstar Agent Kit",
+    "shortDescription": "Nuxt, Vue, TypeScript, release, PR, and writing workflow skills.",
+    "longDescription": "Wolfstar Project workflow skills for Nuxt, Vue, TypeScript, package architecture, PRs, releases, triage, and social writing.",
+    "developerName": "Wolfstar Project",
+    "category": "Productivity",
+    "capabilities": ["Write", "Review", "Workflow"],
+    "defaultPrompt": [
+      "Take ownership of the current work through delivery and smoke verification.",
+      "Adversarially review this PR and post the automated status.",
+      "Review this Nuxt frontend implementation."
+    ],
+    "brandColor": "#2563EB"
+  }
+}

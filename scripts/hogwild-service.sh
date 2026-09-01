@@ -3,18 +3,18 @@
 set -euo pipefail
 
 SCRIPT_DIR=$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)
-HOGWILD_HOST="${HARLAN_GITHUB_AGENT_HOGWILD_HOST:-hogwild}"
-HOGWILD_ORIGIN="${HARLAN_GITHUB_AGENT_HOGWILD_ORIGIN:-https://hogwild.tailcad325.ts.net}"
-REMOTE_HOME="${HARLAN_GITHUB_AGENT_HOGWILD_HOME:-/home/harlan}"
-CONTEXT_FILE="${HARLAN_GITHUB_AGENT_CONTEXT_FILE:-$HOME/.codex/AGENTS.md}"
-PASSWORD_FILE="${HARLAN_GITHUB_AGENT_PASSWORD_FILE:-$HOME/.config/harlan-github-agent/dashboard-password}"
+HOGWILD_HOST="${WOLFSTAR_GITHUB_AGENT_HOGWILD_HOST:-hogwild}"
+HOGWILD_ORIGIN="${WOLFSTAR_GITHUB_AGENT_HOGWILD_ORIGIN:-https://hogwild.tailcad325.ts.net}"
+REMOTE_HOME="${WOLFSTAR_GITHUB_AGENT_HOGWILD_HOME:-/home/wolfstar}"
+CONTEXT_FILE="${WOLFSTAR_GITHUB_AGENT_CONTEXT_FILE:-$HOME/.codex/AGENTS.md}"
+PASSWORD_FILE="${WOLFSTAR_GITHUB_AGENT_PASSWORD_FILE:-$HOME/.config/wolfstar-github-agent/dashboard-password}"
 readonly RESTART_POLL_SECONDS=2
 readonly MAXIMUM_RESTART_SECONDS=$((55 * 60))
-REMOTE_CHECKOUT="$REMOTE_HOME/.local/share/harlan-github-agent/service"
+REMOTE_CHECKOUT="$REMOTE_HOME/.local/share/wolfstar-github-agent/service"
 REMOTE_CONTEXT="$REMOTE_HOME/.codex/AGENTS.md"
 REMOTE_CONTEXT_NEXT="$REMOTE_CONTEXT.next"
 SERVICE_OVERRIDE_FILE="$SCRIPT_DIR/hogwild-service.conf"
-REMOTE_OVERRIDE_DIR="$REMOTE_HOME/.config/systemd/user/harlan-github-agent.service.d"
+REMOTE_OVERRIDE_DIR="$REMOTE_HOME/.config/systemd/user/wolfstar-github-agent.service.d"
 REMOTE_OVERRIDE="$REMOTE_OVERRIDE_DIR/hogwild.conf"
 REMOTE_OVERRIDE_NEXT="$REMOTE_OVERRIDE.next"
 
@@ -215,7 +215,7 @@ remote_service() {
   local command=$1
   local ref=${2:-}
   ssh -o BatchMode=yes "$HOGWILD_HOST" \
-    "export PATH=\"\$HOME/.local/bin:\$PATH\" HARLAN_GITHUB_AGENT_CHECKOUT='$REMOTE_CHECKOUT'; bash -s -- '$command'${ref:+ '$ref'}" \
+    "export PATH=\"\$HOME/.local/bin:\$PATH\" WOLFSTAR_GITHUB_AGENT_CHECKOUT='$REMOTE_CHECKOUT'; bash -s -- '$command'${ref:+ '$ref'}" \
     < "$SCRIPT_DIR/service.sh"
 }
 

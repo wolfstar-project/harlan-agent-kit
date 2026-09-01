@@ -5,10 +5,10 @@
   "git_hash": "1f54fd574546d1c57587fdd89c6ded94f637e91c",
   "dev_port": 61293,
   "pages_changed": [
-    "packages/harlan-github-agent/dashboard/app/pages/index.vue"
+    "packages/wolfstar-github-agent/dashboard/app/pages/index.vue"
   ],
   "components_created": [
-    "packages/harlan-github-agent/dashboard/app/_components/HogwildSparkline.vue"
+    "packages/wolfstar-github-agent/dashboard/app/_components/HogwildSparkline.vue"
   ],
   "routes_to_test": [
     "/"

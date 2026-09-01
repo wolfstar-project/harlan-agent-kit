@@ -1,0 +1,239 @@
+import type { AgentEvent, AgentProvider } from '../src/agent-provider.ts'
+import type { Result } from '../src/result.ts'
+import type { AgentProgress } from '../src/types.ts'
+import { describe, expect, it } from 'vitest'
+import { CODEX_AGENT_PROFILE } from '../src/agent-profile.ts'
+import { runAgentTurn, runParsedAgentTurn } from '../src/agent-turn.ts'
+import { mayRetryFailure } from '../src/failure.ts'
+import { err, ok } from '../src/result.ts'
+import { agentRuntime, turnEvents } from './fixtures.ts'
+
+function replies(responses: unknown[], capture: { prompts: string[] }): AgentProvider {
+  return {
+    name: 'opencode',
+    runTurn: (request) => {
+      capture.prompts.push(request.prompt)
+      const response = responses[capture.prompts.length - 1]
+      return (async function* () {
+        yield* turnEvents(response) as AgentEvent[]
+      })()
+    },
+  }
+}
+
+function options(provider: AgentProvider) {
+  return {
+    now: () => new Date('2026-08-16T00:00:00.000Z'),
+    runtime: agentRuntime(CODEX_AGENT_PROFILE, provider),
+    store: {
+      getWorkerSession: () => null,
+      saveWorkerSession: () => undefined,
+    },
+    parse: (response: string): Result<{ outcome: string }, string> => {
+      const value = JSON.parse(response) as { outcome?: string }
+      return value.outcome === 'resolved'
+        ? ok({ outcome: value.outcome })
+        : err('The agent returned an invalid conflict resolution result.')
+    },
+  }
+}
+
+const input = {
+  number: 24,
+  prompt: 'Resolve the conflict.',
+  repository: 'wolfstar-project/example',
+  role: 'conflict_resolution' as const,
+  schema: { type: 'object' },
+  taskId: 'task-1',
+  workspace: '/tmp/worktree',
+}
+
+describe('runParsedAgentTurn', () => {
+  it('asks once for a corrected result, keeping the work behind it', async () => {
+    const capture = { prompts: [] as string[] }
+    const provider = replies([{ outcome: 'nearly' }, { outcome: 'resolved' }], capture)
+
+    const result = await runParsedAgentTurn(options(provider), input, new AbortController().signal)
+
+    expect(result).toEqual(
+      ok({ value: { outcome: 'resolved' }, sessionId: 'session-1', usage: { _tag: 'Unavailable' } }),
+    )
+    expect(capture.prompts).toHaveLength(2)
+    expect(capture.prompts[1]).toContain('The agent returned an invalid conflict resolution result.')
+    expect(capture.prompts[1]).toContain('Use no tool.')
+  })
+
+  it('reports the first rejection when the correction fails too', async () => {
+    const capture = { prompts: [] as string[] }
+    const provider = replies([{ outcome: 'nearly' }, { outcome: 'still wrong' }], capture)
+
+    const result = await runParsedAgentTurn(options(provider), input, new AbortController().signal)
+
+    expect(result).toEqual(err('The agent returned an invalid conflict resolution result.'))
+    expect(capture.prompts).toHaveLength(2)
+  })
+
+  it('never asks twice for a result that already fits', async () => {
+    const capture = { prompts: [] as string[] }
+    const provider = replies([{ outcome: 'resolved' }], capture)
+
+    const result = await runParsedAgentTurn(options(provider), input, new AbortController().signal)
+
+    expect(result).toEqual(
+      ok({ value: { outcome: 'resolved' }, sessionId: 'session-1', usage: { _tag: 'Unavailable' } }),
+    )
+    expect(capture.prompts).toHaveLength(1)
+  })
+})
+
+describe('review usage', () => {
+  it('adds both turns when the Agent repairs its result schema', async () => {
+    const capture = { prompts: [] as string[] }
+    const provider: AgentProvider = {
+      name: 'codex',
+      runTurn: (request) => {
+        capture.prompts.push(request.prompt)
+        const response = capture.prompts.length === 1 ? { outcome: 'nearly' } : { outcome: 'resolved' }
+        return (async function* () {
+          yield { _tag: 'SessionStarted', sessionId: 'session-1' } as AgentEvent
+          yield { _tag: 'Message', text: JSON.stringify(response) } as AgentEvent
+          yield {
+            _tag: 'Usage',
+            usage: { _tag: 'Available', input: 100, cachedInput: 500, cacheWrite: 10, output: 20, reasoning: 5 },
+          } as AgentEvent
+          yield { _tag: 'TurnCompleted' } as AgentEvent
+        })()
+      },
+    }
+
+    const result = await runParsedAgentTurn(options(provider), input, new AbortController().signal)
+
+    expect(result).toEqual(
+      ok({
+        value: { outcome: 'resolved' },
+        sessionId: 'session-1',
+        usage: { _tag: 'Available', input: 200, cachedInput: 1_000, cacheWrite: 20, output: 40, reasoning: 10 },
+      }),
+    )
+  })
+})
+
+describe('an exhausted Context budget', () => {
+  function exhausts(capture: { prompts: string[] }): AgentProvider {
+    return {
+      name: 'opencode',
+      runTurn: (request) => {
+        capture.prompts.push(request.prompt)
+        return (async function* () {
+          yield { _tag: 'SessionStarted', sessionId: 'session-1' } as AgentEvent
+          yield { _tag: 'ContextBudgetExhausted', cachedTokensRead: 20_400_128 } as AgentEvent
+        })()
+      },
+    }
+  }
+
+  it('fails the turn with a reason naming the pull request', async () => {
+    const capture = { prompts: [] as string[] }
+
+    const result = await runAgentTurn(options(exhausts(capture)), input, new AbortController().signal)
+
+    expect(result._tag).toBe('Err')
+    if (result._tag !== 'Err') return
+    expect(result.error).toContain('wolfstar-project/example#24')
+    expect(mayRetryFailure({ message: result.error })).toBe(false)
+  })
+
+  it('never buys a repair turn with a budget that is already spent', async () => {
+    const capture = { prompts: [] as string[] }
+
+    await runParsedAgentTurn(options(exhausts(capture)), input, new AbortController().signal)
+
+    expect(capture.prompts).toHaveLength(1)
+  })
+})
+
+describe('agent turn progress', () => {
+  /** Drives one clock the event stream advances, so each beat is exact. */
+  function scriptedTurn(steps: Array<{ afterMilliseconds: number; event: AgentEvent }>) {
+    let nowMilliseconds = new Date('2026-08-16T00:00:00.000Z').getTime()
+    const provider: AgentProvider = {
+      name: 'opencode',
+      runTurn: () =>
+        (async function* () {
+          for (const step of steps) {
+            nowMilliseconds += step.afterMilliseconds
+            yield step.event
+          }
+        })(),
+    }
+    return { provider, now: () => new Date(nowMilliseconds) }
+  }
+
+  function reportingInput(reported: AgentProgress[]) {
+    return {
+      ...input,
+      progress: {
+        current: { percent: 35, label: 'Git worktree ready' },
+        report: (progress: AgentProgress) => {
+          reported.push(progress)
+          return ok(undefined)
+        },
+        work: 'fix' as const,
+      },
+    }
+  }
+
+  it('restates one unchanged phase on a slow beat and keeps its start time', async () => {
+    const reported: AgentProgress[] = []
+    const { provider, now } = scriptedTurn([
+      { afterMilliseconds: 0, event: { _tag: 'SessionStarted', sessionId: 'session-1' } as AgentEvent },
+      {
+        afterMilliseconds: 1_000,
+        event: { _tag: 'FileChanged', changes: [{ path: 'a.ts', kind: 'update' }] } as AgentEvent,
+      },
+      {
+        afterMilliseconds: 60_000,
+        event: { _tag: 'FileChanged', changes: [{ path: 'b.ts', kind: 'update' }] } as AgentEvent,
+      },
+      {
+        afterMilliseconds: 40 * 60_000,
+        event: { _tag: 'FileChanged', changes: [{ path: 'c.ts', kind: 'update' }] } as AgentEvent,
+      },
+      { afterMilliseconds: 1_000, event: { _tag: 'Message', text: '{"outcome":"resolved"}' } as AgentEvent },
+    ])
+
+    const result = await runAgentTurn(
+      { ...options(provider), now },
+      reportingInput(reported),
+      new AbortController().signal,
+    )
+
+    expect(result._tag).toBe('Ok')
+    // The first edit advances the phase. The second is inside the beat, so it
+    // stays quiet. The third restates the same phase, from the same start.
+    expect(reported).toEqual([
+      { percent: 70, label: 'Editing files', since: '2026-08-16T00:00:01.000Z' },
+      { percent: 70, label: 'Editing files', since: '2026-08-16T00:00:01.000Z' },
+    ])
+  })
+
+  it('says nothing extra while one phase stays inside the beat', async () => {
+    const reported: AgentProgress[] = []
+    const { provider, now } = scriptedTurn([
+      { afterMilliseconds: 0, event: { _tag: 'SessionStarted', sessionId: 'session-1' } as AgentEvent },
+      {
+        afterMilliseconds: 1_000,
+        event: { _tag: 'FileChanged', changes: [{ path: 'a.ts', kind: 'update' }] } as AgentEvent,
+      },
+      {
+        afterMilliseconds: 60_000,
+        event: { _tag: 'FileChanged', changes: [{ path: 'b.ts', kind: 'update' }] } as AgentEvent,
+      },
+      { afterMilliseconds: 60_000, event: { _tag: 'Message', text: '{"outcome":"resolved"}' } as AgentEvent },
+    ])
+
+    await runAgentTurn({ ...options(provider), now }, reportingInput(reported), new AbortController().signal)
+
+    expect(reported).toHaveLength(1)
+  })
+})

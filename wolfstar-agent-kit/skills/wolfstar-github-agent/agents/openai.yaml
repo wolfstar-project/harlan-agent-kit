@@ -1,0 +1,4 @@
+interface:
+  display_name: Wolfstar GitHub Agent
+  short_description: Control the local GitHub maintenance service
+  default_prompt: Use $wolfstar-github-agent to inspect and manage the local GitHub maintenance service.

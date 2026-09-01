@@ -5,7 +5,7 @@
   "git_hash": "0246c2a030739df1e92d83f7a2f067a245e4875f",
   "dev_port": 42731,
   "pages_changed": [
-    "packages/harlan-github-agent/dashboard/app/pages/index.vue"
+    "packages/wolfstar-github-agent/dashboard/app/pages/index.vue"
   ],
   "components_created": [],
   "routes_to_test": [

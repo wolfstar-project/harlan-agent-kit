@@ -5,8 +5,8 @@
   "git_hash": "63e0b98d42d610511a5c03cf7fbbeb753fa9021d",
   "dev_port": 43829,
   "pages_changed": [
-    "packages/harlan-github-agent/dashboard/app/pages/index.vue",
-    "packages/harlan-github-agent/dashboard/app/pages/history.vue"
+    "packages/wolfstar-github-agent/dashboard/app/pages/index.vue",
+    "packages/wolfstar-github-agent/dashboard/app/pages/history.vue"
   ],
   "components_created": [],
   "routes_to_test": [

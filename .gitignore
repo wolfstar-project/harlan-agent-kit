@@ -9,6 +9,7 @@ __pycache__/
 # Session tracking files
 .claude/.active-plan-*
 .claude/.edit-count-*
+.claude/state/
 
 # Harness worktrees; wt owns worktrees as repo siblings
 .claude/worktrees/

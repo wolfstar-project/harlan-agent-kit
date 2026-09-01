@@ -8,19 +8,19 @@ test_root=$(mktemp -d)
 trap 'rm -rf "$test_root"' EXIT
 
 export HOME="$test_root/home"
-export HARLAN_GITHUB_AGENT_CHECKOUT="$test_root/service"
+export WOLFSTAR_GITHUB_AGENT_CHECKOUT="$test_root/service"
 export SERVICE_TEST_CALLS="$test_root/curl.calls"
 export SERVICE_TEST_PNPM_CALLS="$test_root/pnpm.calls"
 
 mkdir -p \
-  "$HARLAN_GITHUB_AGENT_CHECKOUT/.git" \
-  "$HARLAN_GITHUB_AGENT_CHECKOUT/packages/harlan-github-agent" \
-  "$HOME/.config/harlan-github-agent" \
+  "$WOLFSTAR_GITHUB_AGENT_CHECKOUT/.git" \
+  "$WOLFSTAR_GITHUB_AGENT_CHECKOUT/packages/wolfstar-github-agent" \
+  "$HOME/.config/wolfstar-github-agent" \
   "$HOME/.local/bin" \
   "$test_root/bin"
 ln -s "$node_bin" "$test_root/bin/node"
-printf '%s\n' 'server:' '  allowed_origin: https://hogwild.tailcad325.ts.net' > "$HOME/.config/harlan-github-agent/config.yml"
-printf '%s\n' 'password' > "$HOME/.config/harlan-github-agent/dashboard-password"
+printf '%s\n' 'server:' '  allowed_origin: https://hogwild.tailcad325.ts.net' > "$HOME/.config/wolfstar-github-agent/config.yml"
+printf '%s\n' 'password' > "$HOME/.config/wolfstar-github-agent/dashboard-password"
 printf '%s\n' \
   '#!/usr/bin/env bash' \
   'printf '\''%s\n'\'' "$*" >> "$SERVICE_TEST_PNPM_CALLS"' \

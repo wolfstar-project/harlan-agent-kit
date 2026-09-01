@@ -1,32 +1,31 @@
 {
-  "name": "harlan-agent-kit",
+  "name": "wolfstar-agent-kit",
   "type": "module",
-  "packageManager": "pnpm@11.22.0",
   "scripts": {
-    "build": "pnpm --filter harlan-github-agent build",
-    "lint": "eslint .",
-    "lint:fix": "eslint . --fix",
-    "test": "pnpm test:service && pnpm --filter harlan-github-agent test:run",
-    "typecheck": "pnpm --filter harlan-github-agent typecheck",
+    "build": "pnpm --filter wolfstar-github-agent build",
+    "lint": "oxlint . && oxfmt --check .",
+    "lint:fix": "oxlint . --fix && oxfmt .",
+    "format": "oxfmt .",
+    "format:check": "oxfmt --check .",
+    "test": "pnpm test:service && pnpm --filter wolfstar-github-agent test:run",
+    "typecheck": "pnpm --filter wolfstar-github-agent typecheck",
     "check:context": "scripts/check-agent-context.sh",
     "service:update": "bash scripts/service.sh update",
     "service:restart": "bash scripts/service.sh restart",
     "service:status": "bash scripts/service.sh status",
     "service:hogwild:update": "bash scripts/hogwild-service.sh update",
     "test:service": "bash scripts/service.test.sh && bash scripts/hogwild-service.test.sh",
-    "test:worktree-claim": "bash harlan-agent-kit/scripts/worktree-claim.test.sh",
-    "test:pr-skill-only": "bash harlan-agent-kit/hooks/pr-skill-only.test.sh",
-    "test:wt-only": "bash harlan-agent-kit/hooks/wt-only.test.sh",
-    "test:sentry-checkin": "python3 -m unittest discover -s harlan-agent-kit/skills/sentry-checkin/scripts -p 'test_*.py'",
+    "test:worktree-claim": "bash wolfstar-agent-kit/scripts/worktree-claim.test.sh",
+    "test:pr-skill-only": "bash wolfstar-agent-kit/hooks/pr-skill-only.test.sh",
+    "test:wt-only": "bash wolfstar-agent-kit/hooks/wt-only.test.sh",
+    "test:sentry-checkin": "python3 -m unittest discover -s wolfstar-agent-kit/skills/sentry-checkin/scripts -p 'test_*.py'",
     "release": "node --experimental-strip-types scripts/release.ts"
-  },
-  "dependencies": {
-    "@antfu/eslint-config": "catalog:",
-    "eslint": "catalog:",
-    "eslint-plugin-harlanzw": "catalog:"
   },
   "devDependencies": {
     "@types/node": "catalog:",
+    "oxfmt": "catalog:",
+    "oxlint": "catalog:",
     "typescript": "catalog:"
-  }
+  },
+  "packageManager": "pnpm@11.22.0"
 }

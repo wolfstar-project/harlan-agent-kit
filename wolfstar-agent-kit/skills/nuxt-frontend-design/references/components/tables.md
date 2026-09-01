@@ -1,0 +1,120 @@
+# Table Patterns
+
+Nuxt UI table component for data display.
+
+---
+
+## Basic Table
+
+```vue
+<script setup lang="ts">
+interface Project {
+  id: string
+  name: string
+  status: 'active' | 'archived' | 'draft'
+  updated: string
+}
+
+const columns = [
+  { key: 'name', label: 'Project' },
+  { key: 'status', label: 'Status' },
+  { key: 'updated', label: 'Last Updated' },
+  { key: 'actions', label: '' },
+]
+
+const projects = ref<Project[]>([])
+</script>
+
+<template>
+  <UTable :columns="columns" :rows="projects">
+    <template #status-data="{ row }">
+      <UBadge :color="row.status === 'active' ? 'success' : 'neutral'" variant="subtle">
+        {{ row.status }}
+      </UBadge>
+    </template>
+
+    <template #actions-data>
+      <UDropdownMenu
+        :items="[
+          [{ label: 'Edit', icon: 'i-lucide-pencil' }],
+          [{ label: 'Delete', icon: 'i-lucide-trash-2', color: 'error' }],
+        ]"
+      >
+        <UButton icon="i-lucide-ellipsis" variant="ghost" size="sm" />
+      </UDropdownMenu>
+    </template>
+  </UTable>
+</template>
+```
+
+---
+
+## Empty State
+
+Never show an empty table. Use `UEmpty`:
+
+```vue
+<template>
+  <UTable v-if="projects.length" :columns="columns" :rows="projects" />
+
+  <UEmpty
+    v-else
+    icon="i-lucide-folder-open"
+    title="No projects yet"
+    description="Create your first project to get started."
+    :actions="[{ label: 'New Project', click: createProject }]"
+  />
+</template>
+```
+
+For filtered or searched tables, the useful empty-state action is "reset filters". Give the empty slot an action button, not just a message.
+
+---
+
+## Sortable Columns
+
+```vue
+const columns = [ { key: 'name', label: 'Project', sortable: true }, { key: 'updated', label: 'Last Updated', sortable:
+true }, ]
+```
+
+---
+
+## Row Actions
+
+- Use `UDropdownMenu` with icon button for row actions
+- Group destructive actions in separate section
+- Use `color="error"` for delete actions
+
+---
+
+## Loading State
+
+```vue
+<UTable :columns="columns" :rows="projects" :loading="pending" />
+```
+
+Row-level skeleton placeholders (inside a custom cell renderer or a non-table list) need deterministic widths, seeded rather than random, so SSR and client render identically.
+
+---
+
+## Typography in Tables
+
+Use `font-variant-numeric: tabular-nums` (Tailwind: `tabular-nums`) on any column with numbers — digits align in columns. Apply to price, count, date, and ID columns.
+
+**Right-align numeric columns** (`text-right` on the header and cell). Numbers scan vertically by their magnitude, which only works when the decimal/ones place is in the same x-position down the column. Left-aligned numbers force the eye to re-anchor on every row. Apply to: prices, counts, percentages, quantities, durations, IDs that read as numbers. Keep left-aligned: dates (read as words), formatted strings, status labels.
+
+Tighten table gridlines until they recede: prefer a single thin row separator (`border-default`) over full row+column grids. Heavy borders compete with the data.
+
+---
+
+## Dashboard Table Principles
+
+From Linear's approach:
+
+- **Data tables over cards** — cards waste space for data-heavy views
+- **Status indicators > progress bars** — "Done" badge beats 100% bar
+- **Batch operations** — checkbox column + bulk action bar on select
+- **Inline editing** — click to edit, don't navigate away
+- **Relative timestamps** — "2h ago" not "2024-01-05 14:32"
+- **Responsive**: Tables transform to stacked cards on mobile — use `UTable`'s responsive handling or hide low-priority columns

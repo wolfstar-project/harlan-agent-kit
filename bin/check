@@ -1,7 +1,7 @@
 #!/bin/bash
 # Run lint, typecheck, and tests in parallel
 # Install: ln -sf "$(pwd)/bin/check" ~/.local/bin/check
-# Skip checks: CHECK_SKIP=eslint,typecheck,test check
+# Skip checks: CHECK_SKIP=oxlint,oxfmt,typecheck,test check
 
 skip="${CHECK_SKIP:-}"
 should_skip() { [[ ",$skip," == *",$1,"* ]]; }
@@ -33,13 +33,22 @@ run_check() {
 
 skipped=()
 
-# eslint
-if should_skip eslint; then
-  skipped+=("eslint")
-elif [ -f "node_modules/.bin/eslint" ]; then
-  run_check eslint ./node_modules/.bin/eslint . --fix
+# oxlint
+if should_skip oxlint; then
+  skipped+=("oxlint")
+elif [ -f "node_modules/.bin/oxlint" ]; then
+  run_check oxlint ./node_modules/.bin/oxlint .
 else
-  skipped+=("eslint")
+  skipped+=("oxlint")
+fi
+
+# oxfmt
+if should_skip oxfmt; then
+  skipped+=("oxfmt")
+elif [ -f "node_modules/.bin/oxfmt" ]; then
+  run_check oxfmt ./node_modules/.bin/oxfmt --check .
+else
+  skipped+=("oxfmt")
 fi
 
 # typecheck — prefer nuxi > vue-tsc > tsc > pnpm script
