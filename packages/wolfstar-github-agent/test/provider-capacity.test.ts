@@ -214,6 +214,7 @@ describe('naming why no Agent may start', () => {
       agentStartBlockedReason({
         startState: { _tag: 'Available' },
         queuedTasks: 27,
+        runningTasks: 0,
         agentSelection: selection,
         providerCapacities: [reserved, unreadable],
       }),
@@ -225,6 +226,7 @@ describe('naming why no Agent may start', () => {
       agentStartBlockedReason({
         startState: { _tag: 'ReserveReached' },
         queuedTasks: 0,
+        runningTasks: 0,
         agentSelection: selection,
         providerCapacities: [reserved, unreadable],
       }),
@@ -236,6 +238,7 @@ describe('naming why no Agent may start', () => {
       agentStartBlockedReason({
         startState: { _tag: 'ReserveReached' },
         queuedTasks: 27,
+        runningTasks: 0,
         agentSelection: selection,
         providerCapacities: [reserved, unreadable],
       }),
@@ -244,10 +247,25 @@ describe('naming why no Agent may start', () => {
     )
   })
 
+  it('says nothing while an Agent holds a Task, because a stall means nothing runs', () => {
+    // One capacity reading missed a provider and named the whole fleet blocked
+    // while six Agents were working. A held Task disproves the reading.
+    expect(
+      agentStartBlockedReason({
+        startState: { _tag: 'CapacityUnavailable' },
+        queuedTasks: 14,
+        runningTasks: 6,
+        agentSelection: selection,
+        providerCapacities: [reserved, unreadable],
+      }),
+    ).toBeNull()
+  })
+
   it('reads one waiting Task as one Task', () => {
     const reason = agentStartBlockedReason({
       startState: { _tag: 'CapacityUnavailable' },
       queuedTasks: 1,
+      runningTasks: 0,
       agentSelection: selection,
       providerCapacities: [unreadable],
     })

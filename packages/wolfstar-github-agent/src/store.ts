@@ -1140,6 +1140,7 @@ export interface JournalStore {
   beginRestart: (input: { id: string; processId: string; at: string }) => RestartRequest | null
   completeRestart: (at: string) => RestartRequest | null
   requireRestartAction: (input: { id: string; at: string; reason: string }) => RestartRequest | null
+  prepareForRestart: (at: string) => boolean
   isSafeToRestart: () => boolean
   pauseAgents: (at: string) => StoredAgentControl
   setRepositoryPaused: (github: string, paused: boolean) => boolean
@@ -4393,15 +4394,23 @@ function planAdversarialReview(
     (localAttempt.head_review_run_id !== null || (priorComplete && localAttempt.any_attempt === 0)) &&
     !rerunRequested &&
     !(manualReviewRequested && localAttempt.revision_attempt === 0)
-  const eligible =
+  const reviewable =
     subject.kind === 'pull_request' &&
     subject.state === 'open' &&
     !subject.draft &&
-    subject.mergeState === 'clean' &&
     mapping.enabled &&
     mapping.pullRequestReview &&
     !alreadyReviewed &&
     (!approvalRequired || reviewApproved)
+
+  // GitHub computes mergeability lazily, so a poll seconds after a push reads
+  // unknown on a pull request that is otherwise ready. That is not yet, not
+  // never: superseding here turns a transient GitHub state into a stopped
+  // review that only a human rerun can restart. Leave the tasks alone and let
+  // the next observation decide.
+  if (reviewable && subject.mergeState === 'unknown') return
+
+  const eligible = reviewable && subject.mergeState === 'clean'
 
   if (alreadyReviewed && subject.kind === 'pull_request' && subject.priorAutomatedReview._tag === 'Found') {
     const stored = database
@@ -5798,6 +5807,17 @@ const claudeProviderMigration = `
   PRAGMA user_version = 57;
 `
 
+/** Clears Publication Incidents that existed before they belonged to a repository. */
+const repositoryScopedReviewStatusIncidentMigration = `
+  UPDATE incidents
+  SET resolved_at = last_seen_at
+  WHERE resolved_at IS NULL
+    AND scope_tag = 'Service'
+    AND operation = 'review_status_publication';
+
+  PRAGMA user_version = 58;
+`
+
 function applyMigration(database: DatabaseSync, migration: string): void {
   database.exec('BEGIN IMMEDIATE')
   try {
@@ -6051,9 +6071,13 @@ function installSchema(database: DatabaseSync): void {
   }
   if (version === 56) {
     applyForeignKeyMigration(database, claudeProviderMigration)
+    version = 57
+  }
+  if (version === 57) {
+    applyMigration(database, repositoryScopedReviewStatusIncidentMigration)
     return
   }
-  if (version === 57) return
+  if (version === 58) return
   throw new Error(`Unsupported database schema version: ${version}.`)
 }
 
@@ -11245,6 +11269,69 @@ export function openJournalStore(
     return row.busy === 0
   }
 
+  const prepareForRestart: JournalStore['prepareForRestart'] = (at) => {
+    database.exec('BEGIN IMMEDIATE')
+    try {
+      const terminalRows = database
+        .prepare(`
+        SELECT id, fence FROM review_status_commands
+        WHERE state_tag = 'Running' AND phase = 'terminal' AND lease_expires_at <= ?
+      `)
+        .all(at) as unknown as Array<{ id: string; fence: number }>
+      const progressRows = database
+        .prepare(`
+        SELECT id, fence FROM review_status_commands
+        WHERE state_tag = 'Running' AND phase != 'terminal' AND lease_expires_at <= ?
+      `)
+        .all(at) as unknown as Array<{ id: string; fence: number }>
+      database
+        .prepare(`
+        UPDATE review_status_commands
+        SET state_tag = 'Pending', outcome_unknown = 1,
+          reason = 'The automated review did not finish before the Restart request.',
+          worker_id = NULL, lease_expires_at = NULL, updated_at = ?
+        WHERE state_tag = 'Running' AND phase = 'terminal' AND lease_expires_at <= ?
+      `)
+        .run(at, at)
+      terminalRows.forEach((row) =>
+        recordReviewStatusEvent(database, {
+          commandId: row.id,
+          event: 'LeaseRecovered',
+          from: 'Running',
+          to: 'Pending',
+          reason: 'The automated review did not finish before the Restart request.',
+          fence: row.fence,
+          at,
+        }),
+      )
+      database
+        .prepare(`
+        UPDATE review_status_commands
+        SET state_tag = 'Superseded',
+          reason = 'The automated review did not finish before the Restart request.',
+          worker_id = NULL, lease_expires_at = NULL, updated_at = ?
+        WHERE state_tag = 'Running' AND phase != 'terminal' AND lease_expires_at <= ?
+      `)
+        .run(at, at)
+      progressRows.forEach((row) =>
+        recordReviewStatusEvent(database, {
+          commandId: row.id,
+          event: 'RestartSuperseded',
+          from: 'Running',
+          to: 'Superseded',
+          reason: 'The automated review did not finish before the Restart request.',
+          fence: row.fence,
+          at,
+        }),
+      )
+      database.exec('COMMIT')
+    } catch (error) {
+      database.exec('ROLLBACK')
+      throw error
+    }
+    return isSafeToRestart()
+  }
+
   const listWorkflowEvents: JournalStore['listWorkflowEvents'] = (input = {}) => {
     const limit = Math.max(1, Math.min(1_000, input.limit ?? 200))
     const rows =
@@ -14192,6 +14279,7 @@ export function openJournalStore(
     beginRestart,
     completeRestart,
     requireRestartAction,
+    prepareForRestart,
     isSafeToRestart,
     dismissItem,
     restoreItem,

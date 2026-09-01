@@ -57,7 +57,7 @@ const open = ref(false)
 </script>
 
 <template>
-  <UButton @click="open = true">Open Settings</UButton>
+  <UButton @click="open = true"> Open Settings </UButton>
 
   <UModal v-model:open="open">
     <template #header>
@@ -70,8 +70,8 @@ const open = ref(false)
 
     <template #footer>
       <div class="flex justify-end gap-3">
-        <UButton variant="outline" @click="open = false">Cancel</UButton>
-        <UButton @click="save">Save</UButton>
+        <UButton variant="outline" @click="open = false"> Cancel </UButton>
+        <UButton @click="save"> Save </UButton>
       </div>
     </template>
   </UModal>

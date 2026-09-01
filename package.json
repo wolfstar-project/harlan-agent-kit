@@ -16,6 +16,7 @@
     "service:hogwild:update": "bash scripts/hogwild-service.sh update",
     "test:service": "bash scripts/service.test.sh && bash scripts/hogwild-service.test.sh",
     "test:worktree-claim": "bash wolfstar-agent-kit/scripts/worktree-claim.test.sh",
+    "test:pr-asset": "bash wolfstar-agent-kit/scripts/pr-asset.test.sh",
     "test:pr-skill-only": "bash wolfstar-agent-kit/hooks/pr-skill-only.test.sh",
     "test:wt-only": "bash wolfstar-agent-kit/hooks/wt-only.test.sh",
     "test:sentry-checkin": "python3 -m unittest discover -s wolfstar-agent-kit/skills/sentry-checkin/scripts -p 'test_*.py'",

@@ -6,7 +6,7 @@ const DEFAULT_MAXIMUM_WAIT_MILLISECONDS = 50 * 60_000
 
 type RestartStore = Pick<
   JournalStore,
-  'beginRestart' | 'getRestartRequest' | 'isSafeToRestart' | 'requireRestartAction'
+  'beginRestart' | 'getRestartRequest' | 'prepareForRestart' | 'requireRestartAction'
 >
 
 export interface RestartController {
@@ -48,7 +48,7 @@ export function createRestartController(options: {
       return
     }
 
-    if (!options.store.isSafeToRestart()) return
+    if (!options.store.prepareForRestart(at)) return
     const restarting = options.store.beginRestart({ id: request.id, processId: options.processId, at })
     if (restarting?._tag === 'Restarting') resolveRestart?.()
   }
