@@ -1,0 +1,14 @@
+{
+  "$schema": "./node_modules/oxlint/configuration_schema.json",
+  "categories": {
+    "correctness": "error"
+  },
+  "plugins": ["import", "oxc", "typescript", "vue"],
+  "rules": {
+    "eqeqeq": "error",
+    "no-debugger": "error",
+    "no-unused-vars": "error",
+    "prefer-const": "error",
+    "require-yield": "off"
+  }
+}

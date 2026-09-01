@@ -4,11 +4,11 @@
 
 Files changed:
 
-- `packages/harlan-github-agent/dashboard/app/pages/index.vue`
-- `packages/harlan-github-agent/dashboard/app/_components/HogwildSparkline.vue`
-- `packages/harlan-github-agent/dashboard/app/composables/useHogwildStatus.ts`
-- `packages/harlan-github-agent/dashboard/app/utils/hogwild-status.ts`
-- `packages/harlan-github-agent/test/hogwild-status.test.ts`
+- `packages/wolfstar-github-agent/dashboard/app/pages/index.vue`
+- `packages/wolfstar-github-agent/dashboard/app/_components/HogwildSparkline.vue`
+- `packages/wolfstar-github-agent/dashboard/app/composables/useHogwildStatus.ts`
+- `packages/wolfstar-github-agent/dashboard/app/utils/hogwild-status.ts`
+- `packages/wolfstar-github-agent/test/hogwild-status.test.ts`
 
 Verified criteria:
 

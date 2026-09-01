@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Controls the harlan-github-agent systemd service.
+# Controls the wolfstar-github-agent systemd service.
 #
 #   service.sh update [REF]   move to REF (default origin/main), rebuild, restart
 #   service.sh prepare-update [REF]   move to REF and rebuild without restarting
@@ -11,11 +11,11 @@
 # supported way to move it.
 set -euo pipefail
 
-SERVICE_CHECKOUT="${HARLAN_GITHUB_AGENT_CHECKOUT:-$HOME/.local/share/harlan-github-agent/service}"
-SERVICE_UNIT=harlan-github-agent
+SERVICE_CHECKOUT="${WOLFSTAR_GITHUB_AGENT_CHECKOUT:-$HOME/.local/share/wolfstar-github-agent/service}"
+SERVICE_UNIT=wolfstar-github-agent
 HEALTH_URL=http://127.0.0.1:3210/health
-CONFIG_FILE="$HOME/.config/harlan-github-agent/config.yml"
-PASSWORD_FILE="$HOME/.config/harlan-github-agent/dashboard-password"
+CONFIG_FILE="$HOME/.config/wolfstar-github-agent/config.yml"
+PASSWORD_FILE="$HOME/.config/wolfstar-github-agent/dashboard-password"
 
 HEALTH_HOST=$(node --input-type=commonjs - "$CONFIG_FILE" <<'NODE'
 const { readFileSync } = require('node:fs')
@@ -57,18 +57,18 @@ report() {
 require_checkout() {
   if [ ! -d "$SERVICE_CHECKOUT/.git" ]; then
     echo "No service checkout at $SERVICE_CHECKOUT." >&2
-    echo "Create one with: git clone git@github.com:harlan-zw/harlan-agent-kit.git $SERVICE_CHECKOUT" >&2
+    echo "Create one with: git clone git@github.com:wolfstar-project/wolfstar-agent-kit.git $SERVICE_CHECKOUT" >&2
     exit 1
   fi
 }
 
 resolve_pnpm() {
-  if [ -n "${HARLAN_GITHUB_AGENT_PNPM:-}" ]; then
-    if [ ! -x "$HARLAN_GITHUB_AGENT_PNPM" ]; then
-      echo "The configured pnpm executable does not exist: $HARLAN_GITHUB_AGENT_PNPM" >&2
+  if [ -n "${WOLFSTAR_GITHUB_AGENT_PNPM:-}" ]; then
+    if [ ! -x "$WOLFSTAR_GITHUB_AGENT_PNPM" ]; then
+      echo "The configured pnpm executable does not exist: $WOLFSTAR_GITHUB_AGENT_PNPM" >&2
       exit 1
     fi
-    printf '%s\n' "$HARLAN_GITHUB_AGENT_PNPM"
+    printf '%s\n' "$WOLFSTAR_GITHUB_AGENT_PNPM"
     return
   fi
   if command -v pnpm >/dev/null 2>&1; then
@@ -81,7 +81,7 @@ resolve_pnpm() {
       return
     fi
   done
-  echo "pnpm is not installed. Install it or set HARLAN_GITHUB_AGENT_PNPM." >&2
+  echo "pnpm is not installed. Install it or set WOLFSTAR_GITHUB_AGENT_PNPM." >&2
   exit 1
 }
 
@@ -120,7 +120,7 @@ prepare_update() {
   echo "Installing dependencies"
   (cd "$SERVICE_CHECKOUT" && "$pnpm_bin" install --frozen-lockfile >/dev/null)
   echo "Building the dashboard"
-  (cd "$SERVICE_CHECKOUT/packages/harlan-github-agent" && "$pnpm_bin" dashboard:build >/dev/null 2>&1)
+  (cd "$SERVICE_CHECKOUT/packages/wolfstar-github-agent" && "$pnpm_bin" dashboard:build >/dev/null 2>&1)
 }
 
 command="${1:-update}"

@@ -10,7 +10,7 @@ set -uo pipefail
 
 CLAUDE="${HOME}/.claude/CLAUDE.md"
 CODEX="${HOME}/.codex/AGENTS.md"
-SKILL="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/harlan-agent-kit/skills/ts-design-patterns/SKILL.md"
+SKILL="$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)/wolfstar-agent-kit/skills/ts-design-patterns/SKILL.md"
 
 # Divergences that are intentional. Update this when you deliberately add one.
 # Today: Artifacts, AskUserQuestion, skill paths, file search tools, skill loading,

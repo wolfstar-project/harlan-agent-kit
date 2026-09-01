@@ -1,0 +1,113 @@
+import type { Octokit } from 'octokit'
+import { describe, expect, it, vi } from 'vitest'
+import { createGitHubAgentSource } from '../src/github-agent-source.ts'
+import { ok } from '../src/result.ts'
+import { repositoryMapping } from './fixtures.ts'
+
+const headSha = '1031dc93dddca88266cb32a085c7b90dcd58ec23'
+const oldBody = `<!-- wolfstar-agent-kit:pr-triage -->
+<!-- reviewed-sha: ${headSha} -->
+### 🤖 REVIEWING · Adversarial review`
+const newBody = `<!-- wolfstar-agent-kit:pr-triage -->
+<!-- reviewed-sha: ${headSha} -->
+### 🤖 READY · Adversarial review`
+
+function legacySource(initialBody = oldBody) {
+  const comment = {
+    id: 5,
+    author_association: 'OWNER',
+    body: initialBody,
+    html_url: 'https://github.com/wolfstar-project/example/pull/24#issuecomment-5',
+    issue_url: 'https://api.github.com/repos/wolfstar-project/example/issues/24',
+    user: { login: 'wolfstar-project' },
+  }
+  const appUpdate = vi.fn((_input: { body: string }) => Promise.resolve({ data: comment }))
+  const userUpdate = vi.fn((input: { body: string }) => {
+    comment.body = input.body
+    return Promise.resolve({ data: comment })
+  })
+  const client = (updateComment: typeof userUpdate) =>
+    ({
+      paginate: () => Promise.resolve([comment]),
+      rest: {
+        issues: {
+          createComment: vi.fn(),
+          getComment: () => Promise.resolve({ data: comment }),
+          listComments: vi.fn(),
+          updateComment,
+        },
+      },
+    }) as unknown as Octokit
+  const source = createGitHubAgentSource({
+    actorLogin: () => 'wolfstar-github-agent[bot]',
+    createClient: (token) => (token === 'user-token' ? client(userUpdate) : client(appUpdate)),
+    legacyActor: {
+      login: 'wolfstar-project',
+      tokens: {
+        getToken: () => Promise.resolve(ok({ token: 'user-token', expiresAt: '2026-08-30T00:00:00.000Z' })),
+        invalidate: () => undefined,
+      },
+    },
+    tokens: {
+      getToken: () => Promise.resolve(ok({ token: 'app-token', expiresAt: '2026-08-30T00:00:00.000Z' })),
+      invalidate: () => undefined,
+    },
+  })
+  return { appUpdate, comment, source, userUpdate }
+}
+
+describe('review status actor handoff', () => {
+  it('updates an active automated review through its original user actor', async () => {
+    const { appUpdate, comment, source, userUpdate } = legacySource()
+
+    const result = await source.upsertReviewStatus(
+      repositoryMapping(),
+      24,
+      null,
+      newBody,
+      false,
+      new AbortController().signal,
+    )
+
+    expect(result).toEqual(ok({ commentId: 5, url: comment.html_url }))
+    expect(userUpdate).toHaveBeenCalledWith(expect.objectContaining({ comment_id: 5, body: newBody }))
+    expect(appUpdate).not.toHaveBeenCalled()
+  })
+
+  it('closes a stopped automated review through its original user actor', async () => {
+    const { appUpdate, comment, source, userUpdate } = legacySource()
+
+    const result = await source.editReviewStatus(
+      repositoryMapping(),
+      24,
+      5,
+      oldBody,
+      newBody,
+      new AbortController().signal,
+    )
+
+    expect(result).toEqual(ok({ _tag: 'Edited', commentId: 5, url: comment.html_url }))
+    expect(userUpdate).toHaveBeenCalledWith(expect.objectContaining({ comment_id: 5, body: newBody }))
+    expect(appUpdate).not.toHaveBeenCalled()
+  })
+
+  it('refuses an unmarked comment from the original user actor', async () => {
+    const { appUpdate, source, userUpdate } = legacySource('Human review comment')
+
+    const result = await source.editReviewStatus(
+      repositoryMapping(),
+      24,
+      5,
+      'Human review comment',
+      newBody,
+      new AbortController().signal,
+    )
+
+    expect(result).toEqual({
+      _tag: 'Err',
+      error: 'The stored automated review comment belongs to another GitHub actor.',
+    })
+    expect(userUpdate).not.toHaveBeenCalled()
+    expect(appUpdate).not.toHaveBeenCalled()
+  })
+})

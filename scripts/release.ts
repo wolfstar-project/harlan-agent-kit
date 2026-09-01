@@ -12,16 +12,14 @@ if (!bumpType || !['patch', 'minor', 'major'].includes(bumpType)) {
 
 function bumpVersion(version: string, type: 'patch' | 'minor' | 'major'): string {
   const [major, minor, patch] = version.split('.').map(Number)
-  if (type === 'major')
-    return `${major + 1}.0.0`
-  if (type === 'minor')
-    return `${major}.${minor + 1}.0`
+  if (type === 'major') return `${major + 1}.0.0`
+  if (type === 'minor') return `${major}.${minor + 1}.0`
   return `${major}.${minor}.${patch + 1}`
 }
 
 // Get current version from plugin.json
-const pluginPath = 'harlan-agent-kit/.claude-plugin/plugin.json'
-const codexPluginPath = 'harlan-agent-kit/.codex-plugin/plugin.json'
+const pluginPath = 'wolfstar-agent-kit/.claude-plugin/plugin.json'
+const codexPluginPath = 'wolfstar-agent-kit/.codex-plugin/plugin.json'
 const marketplacePath = '.claude-plugin/marketplace.json'
 const plugin = JSON.parse(readFileSync(pluginPath, 'utf-8'))
 const codexPlugin = JSON.parse(readFileSync(codexPluginPath, 'utf-8'))
@@ -49,10 +47,7 @@ console.log(`  ✓ ${marketplacePath}`)
 // Update all SKILL.md files (if they have version in frontmatter)
 for await (const file of glob('**/skill.md', { nocase: true })) {
   const content = readFileSync(file, 'utf-8')
-  const updated = content.replace(
-    /^(---[\s\S]*?version:\s*)[\d.]+/m,
-    `$1${newVersion}`,
-  )
+  const updated = content.replace(/^(---[\s\S]*?version:\s*)[\d.]+/m, `$1${newVersion}`)
   if (updated !== content) {
     writeFileSync(file, updated)
     console.log(`  ✓ ${file}`)

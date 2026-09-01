@@ -1,6 +1,6 @@
 # Plan: scheduled Routines
 
-Status: approved 2026-08-27. Target package: `packages/harlan-github-agent`.
+Status: approved 2026-08-27. Target package: `packages/wolfstar-github-agent`.
 
 Supersedes the proposed version of this plan. The vocabulary, the Candidate ledger, and the
 `report` and `propose` modes survive unchanged. The schedule moved from service configuration
@@ -31,12 +31,12 @@ Publication commands with head checks, and adversarial review on every opened pu
 
 `GLOSSARY.md` defines no term for this concept. These terms are approved.
 
-| Term | Meaning | Displaces |
-| --- | --- | --- |
-| Routine | One named job with a schedule, a scope, and a prompt | daily routine, cron job, sweep |
-| Routine run | One execution of one Routine against one Repository mapping | run, sweep, pass |
-| Candidate | One proposed change found by a Routine run, before any edit | finding, opportunity, hit |
-| Candidate ledger | The durable record of every Candidate and its result | history, memory, cache |
+| Term             | Meaning                                                     | Displaces                      |
+| ---------------- | ----------------------------------------------------------- | ------------------------------ |
+| Routine          | One named job with a schedule, a scope, and a prompt        | daily routine, cron job, sweep |
+| Routine run      | One execution of one Routine against one Repository mapping | run, sweep, pass               |
+| Candidate        | One proposed change found by a Routine run, before any edit | finding, opportunity, hit      |
+| Candidate ledger | The durable record of every Candidate and its result        | history, memory, cache         |
 
 `Routine` avoids GitHub's vocabulary. `workflow`, `job`, and `run` all belong to GitHub Actions
 in `GLOSSARY.md`, so none of them was available.
@@ -67,7 +67,7 @@ nothing can act on it.
 One file, read from the default branch only.
 
 ```yaml
-# .github/harlan-agent.yml
+# .github/wolfstar-agent.yml
 version: 1
 routines:
   - name: sentry-checkin
@@ -81,7 +81,7 @@ routines:
 
 `on.schedule[].cron` copies GitHub Actions exactly, so the spec introduces no new vocabulary.
 
-Routines that belong to no single repository live in `harlan-agent-kit` with `scope: fleet`.
+Routines that belong to no single repository live in `wolfstar-agent-kit` with `scope: fleet`.
 
 ### Trust boundary
 
@@ -110,7 +110,7 @@ Acceptance: two scans of an unchanged repository produce the same fingerprints.
 
 ### 2. Spec reader
 
-- [ ] Read `.github/harlan-agent.yml` from the default branch SHA through the GitHub App contents
+- [ ] Read `.github/wolfstar-agent.yml` from the default branch SHA through the GitHub App contents
       read. Never from the local checkout, and never from a pull request head.
 - [ ] Parse it once at the boundary into a precise type. Reject an unknown Routine name, an
       unknown mode, and any key the spec may not set.
@@ -174,7 +174,7 @@ Acceptance: a fix task cannot push without a matching Publication command.
       and a truth table for logic changes.
 - [ ] Publish nothing when evidence is missing. Mark the Candidate `needs attention`.
 - [ ] Confirm routine pull requests enter adversarial review with no extra Approval, because the
-      author is `harlan-zw`.
+      author is `wolfstar-project`.
 
 Acceptance: a routine pull request with no evidence never reaches GitHub.
 
@@ -228,7 +228,7 @@ Ship item 5 with the first Routine. It carries this risk alone.
 A scan agent with write access turns one bad prompt into a repository-wide change. Item 4 must deny
 writes at the worktree level, not by instruction.
 
-Unattended overnight runs spend the same weekly subscription window Harlan does. The Reserve and
+Unattended overnight runs spend the same weekly subscription window Wolfstar does. The Reserve and
 `Automatic` Agent selection landed first for that reason. See `src/provider-capacity.ts`.
 
 A repository spec is untrusted input. Without the two trust rules above, a pull request to a
